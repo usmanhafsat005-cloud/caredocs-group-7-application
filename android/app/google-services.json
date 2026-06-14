@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "374918871212",
+    "project_id": "caredocs-98220",
+    "storage_bucket": "caredocs-98220.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374918871212:android:ee0c1c95ce752e43a2c709",
+        "android_client_info": {
+          "package_name": "com.example.caredocs_apps"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ4-p965Zn9lOoJS2cyFcPddERJ44A3_U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374918871212:android:1e8e27d52bb05bb0a2c709",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ4-p965Zn9lOoJS2cyFcPddERJ44A3_U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374918871212:android:2f526d4f0d282387a2c709",
+        "android_client_info": {
+          "package_name": "com.example.my_day"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ4-p965Zn9lOoJS2cyFcPddERJ44A3_U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
