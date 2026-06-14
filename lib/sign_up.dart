@@ -18,9 +18,10 @@ class SignUp extends StatelessWidget {
         emailAddress: email,
         userpassword: password,
       );
-      Navigator.push(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => Dashboard()),
+        (route) => false,
       );
     } on FirebaseAuthException catch (error) {
       print(error.message);
