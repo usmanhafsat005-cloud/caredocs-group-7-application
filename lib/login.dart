@@ -1,10 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'dashboard.dart';
 import 'auth_services.dart';
-import 'forget_password.dart';
+import 'dashboard.dart';
 import 'sign_up.dart';
+import 'patient_dashboard.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -18,7 +19,29 @@ class _LoginState extends State<Login> {
 
   String email = "";
   String password = "";
+
   bool isLoading = false;
+  bool obscurePassword = true;
+
+  // ✅ SAFE ROLE FETCH (NO TIMEOUT FREEZES)
+  Future<String> getUserRole(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .get();
+
+      if (!doc.exists) return "patient";
+
+      final data = doc.data();
+      if (data == null) return "patient";
+
+      return data["role"] ?? "patient";
+    } catch (e) {
+      debugPrint("Role fetch error: $e");
+      return "patient";
+    }
+  }
 
   Future<void> loginUser() async {
     if (!_formKey.currentState!.validate()) return;
@@ -26,135 +49,191 @@ class _LoginState extends State<Login> {
     setState(() => isLoading = true);
 
     try {
-      await authServices.value.signIn(
+      // 🔐 LOGIN USER
+      final credential = await authServices.value.signIn(
         emailAddress: email.trim(),
         userpassword: password.trim(),
       );
 
+      final user = credential.user;
+
+      if (user == null) {
+        throw Exception("Login failed");
+      }
+
+      // 🧠 GET ROLE FROM FIRESTORE
+      final role = await getUserRole(user.uid);
+
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const Dashboard()),
-      );
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? "Login failed")));
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Something went wrong")));
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
+      setState(() => isLoading = false);
+
+      // 🚀 ROUTE USER
+      if (role == "provider") {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Dashboard()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PatientDashboard()),
+        );
       }
+    } catch (e) {
+      if (mounted) setState(() => isLoading = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login failed: $e")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-
-              const Text(
-                "Welcome to CAREDOCS 👋",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 20),
-
-              // EMAIL
-              TextFormField(
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                  border: OutlineInputBorder(),
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xff009688), Color(0xff80CBC4), Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Card(
+                elevation: 10,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
                 ),
-                onChanged: (value) => email = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Email is required";
-                  }
-                  if (!value.contains("@")) {
-                    return "Enter a valid email";
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 15),
-
-              // PASSWORD
-              TextFormField(
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: "Password",
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) => password = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Password is required";
-                  }
-                  if (value.length < 6) {
-                    return "Password must be at least 6 characters";
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              // LOGIN BUTTON
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : loginUser,
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(25),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircleAvatar(
+                          radius: 45,
+                          backgroundColor: Colors.teal,
+                          child: Icon(
+                            Icons.medical_services,
+                            size: 45,
                             color: Colors.white,
                           ),
-                        )
-                      : const Text("Login"),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        const Text(
+                          "Welcome to CAREDOCS",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        const Text(
+                          "Secure Medical Login System",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: "Email",
+                            prefixIcon: Icon(Icons.email),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (v) => email = v,
+                          validator: (v) =>
+                              v == null || v.isEmpty ? "Enter email" : null,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        TextFormField(
+                          obscureText: obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: "Password",
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  obscurePassword = !obscurePassword;
+                                });
+                              },
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          onChanged: (v) => password = v,
+                          validator: (v) => v != null && v.length < 6
+                              ? "Min 6 characters"
+                              : null,
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: isLoading ? null : loginUser,
+                            child: isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : const Text(
+                                    "LOGIN",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text("Don't have an account?"),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SignUp(),
+                                  ),
+                                );
+                              },
+                              child: const Text("Create Account"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 10),
-
-              // LINKS
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => ForgetPassword()),
-                  );
-                },
-                child: const Text("Forgot Password?"),
-              ),
-
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => SignUp()),
-                  );
-                },
-                child: const Text("Create Account"),
-              ),
-            ],
+            ),
           ),
         ),
       ),

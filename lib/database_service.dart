@@ -15,7 +15,7 @@ class DatabaseService {
   }
 
   Future<void> update({
-    required String path,
+    required String path, 
     required Map<String, dynamic> data,
   }) async {
     final DatabaseReference ref = _firebaseDatabase.ref().child(path);
